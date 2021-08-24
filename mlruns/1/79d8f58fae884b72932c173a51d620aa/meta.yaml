@@ -1,0 +1,15 @@
+artifact_uri: file:///Users/katarzynakupczyk/code/katarzyna-kupczyk/TaxiFareModel/mlruns/1/79d8f58fae884b72932c173a51d620aa/artifacts
+end_time: null
+entry_point_name: ''
+experiment_id: '1'
+lifecycle_stage: active
+name: ''
+run_id: 79d8f58fae884b72932c173a51d620aa
+run_uuid: 79d8f58fae884b72932c173a51d620aa
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1629813425660
+status: 1
+tags: []
+user_id: unknown
