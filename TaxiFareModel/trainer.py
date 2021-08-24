@@ -2,7 +2,10 @@
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
 from sklearn.compose import ColumnTransformer
-from sklearn.linear_model import LinearRegression
+from sklearn.linear_model import LinearRegression, SGDRegressor
+from sklearn.svm import LinearSVR, SVR
+from xgboost import XGBRegressor
+from sklearn.ensemble import RandomForestRegressor
 from TaxiFareModel.encoders import DistanceTransformer, TimeFeaturesEncoder
 from TaxiFareModel.utils import compute_rmse
 from TaxiFareModel.data import get_data, clean_data
@@ -10,6 +13,7 @@ from sklearn.model_selection import train_test_split
 from memoized_property import memoized_property
 from mlflow.tracking import MlflowClient
 import mlflow
+import joblib
 
 
 
@@ -37,7 +41,7 @@ class Trainer():
         ]), ('time', time_pipe, ['pickup_datetime'])],
                                         remainder="drop")
         self.pipeline = Pipeline([('preproc', preproc_pipe),
-                        ('linear_model', LinearRegression())])
+                    ('LinearSVR', LinearSVR())])
 
 
     def run(self):
@@ -78,10 +82,13 @@ class Trainer():
     def mlflow_log_metric(self, key, value):
         self.mlflow_client.log_metric(self.mlflow_run.info.run_id, key, value)
 
+    def save_model(self):
+        """ Save the trained model into a model.joblib file """
+        joblib.dump(self.pipeline, 'model.joblib')
 
 if __name__ == "__main__":
     # get data
-    func_test_data = get_data(nrows=1000)
+    func_test_data = get_data(nrows=1000000)
 
     # clean data
     func_test_cleaned = clean_data(func_test_data)
@@ -102,5 +109,6 @@ if __name__ == "__main__":
     rmse = func_test_trainer.evaluate(X_val, y_val)
 
     print(f'RMSE = {rmse}')
-    func_test_trainer.mlflow_log_param('model', 'linearregression')
+    func_test_trainer.mlflow_log_param('model', 'LinearSVR, 1mil datapoints')
     func_test_trainer.mlflow_log_metric('RMSE', rmse)
+    func_test_trainer.save_model()
