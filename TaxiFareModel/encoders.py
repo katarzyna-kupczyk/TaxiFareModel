@@ -1,5 +1,6 @@
 from sklearn.base import BaseEstimator, TransformerMixin
 from TaxiFareModel.utils import haversine_vectorized
+from TaxiFareModel.data import df_optimized
 import pandas as pd
 
 
@@ -43,9 +44,23 @@ class DistanceTransformer(BaseEstimator, TransformerMixin):
     def transform(self, X, y=None):
         assert isinstance(X, pd.DataFrame)
         X_ = X.copy()
-        X_["distance"] = haversine_vectorized(X_,
-                                              start_lat=self.start_lat,
-                                              start_lon=self.start_lon,
-                                              end_lat=self.end_lat,
-                                              end_lon=self.end_lon)
+        X_["distance"] = haversine_vectorized(
+            X_,
+            start_lat=self.start_lat,
+            start_lon=self.start_lon,
+            end_lat=self.end_lat,
+            end_lon=self.end_lon)
         return X_[['distance']]
+
+
+class OptimizeDataSize(BaseEstimator, TransformerMixin):
+    def __init__(self, verbose=True):
+        self.verbose = True
+
+    def fit(self, X, y=None):
+        return self
+
+    def transform(self, X, y=None):
+        assert isinstance(X, pd.DataFrame)
+        X = df_optimized(X)
+        return X

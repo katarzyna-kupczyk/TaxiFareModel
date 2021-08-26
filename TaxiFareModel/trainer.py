@@ -1,4 +1,5 @@
 # imports
+from google.cloud import storage
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
 from sklearn.compose import ColumnTransformer
@@ -8,7 +9,8 @@ from xgboost import XGBRegressor
 from sklearn.ensemble import RandomForestRegressor
 from TaxiFareModel.encoders import DistanceTransformer, TimeFeaturesEncoder
 from TaxiFareModel.utils import compute_rmse
-from TaxiFareModel.data import get_data, clean_data
+from TaxiFareModel.data import BUCKET_NAME, get_data, clean_data
+from TaxiFareModel.encoders import OptimizeDataSize
 from sklearn.model_selection import train_test_split
 from memoized_property import memoized_property
 from mlflow.tracking import MlflowClient
@@ -35,13 +37,13 @@ class Trainer():
 
         time_pipe = Pipeline([('time_enc', TimeFeaturesEncoder('pickup_datetime')),
                             ('ohe', OneHotEncoder(handle_unknown='ignore'))])
-        preproc_pipe = ColumnTransformer([('distance', dist_pipe, [
-            "pickup_latitude", "pickup_longitude", 'dropoff_latitude',
-            'dropoff_longitude'
-        ]), ('time', time_pipe, ['pickup_datetime'])],
+        preproc_pipe = ColumnTransformer([('distance', dist_pipe, ["pickup_latitude", "pickup_longitude", 'dropoff_latitude','dropoff_longitude']),
+                                        ('time', time_pipe, ['pickup_datetime'])],
                                         remainder="drop")
         self.pipeline = Pipeline([('preproc', preproc_pipe),
-                    ('LinearSVR', LinearSVR())])
+                                  ('data_size', OptimizeDataSize()),
+                                  ('LinearSVR', LinearSVR())
+                                  ])
 
 
     def run(self):
@@ -83,12 +85,20 @@ class Trainer():
         self.mlflow_client.log_metric(self.mlflow_run.info.run_id, key, value)
 
     def save_model(self):
+        STORAGE_LOCATION = 'models/simpletaxifare/model.joblib'
+        BUCKET_NAME = 'wagon-data-699-kupczyk'
         """ Save the trained model into a model.joblib file """
-        joblib.dump(self.pipeline, 'model.joblib')
+        joblib.dump(self.pipeline, 'model2.joblib')
+        client = storage.Client()
+        bucket = client.bucket(BUCKET_NAME)
+        blob = bucket.blob(STORAGE_LOCATION)
+        blob.upload_from_filename('model2.joblib')
+        print(f"uploaded model.joblib to gcp cloud storage under \n => {STORAGE_LOCATION}")
+
 
 if __name__ == "__main__":
     # get data
-    func_test_data = get_data(nrows=1000000)
+    func_test_data = get_data(nrows=1000)
 
     # clean data
     func_test_cleaned = clean_data(func_test_data)
